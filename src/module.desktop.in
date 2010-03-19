@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Link
+Name=SHR-Gadgets
+Icon=shr-logo
+X-Enlightenment-ModuleType=system
+Comment=This is a module that includes many gadgets useful for SHR.
