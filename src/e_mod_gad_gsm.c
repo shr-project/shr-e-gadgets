@@ -1,5 +1,14 @@
 #include "e.h"
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#define FALSE 0
+#define TRUE 1
+
 static E_DBus_Connection *conn = NULL;
 static E_DBus_Connection *conn_system = NULL;
 static E_DBus_Signal_Handler *changed_h = NULL;
@@ -8,6 +17,7 @@ static E_DBus_Signal_Handler *operatorch_h = NULL;
 static E_DBus_Signal_Handler *operatorch_fso_h = NULL;
 static E_DBus_Signal_Handler *namech_h = NULL;
 static E_DBus_Signal_Handler *namech_system_h = NULL;
+static E_DBus_Signal_Handler *device_status_changed_fso_h = NULL;
 
 static Ecore_Timer *try_again_timer = NULL;
 
@@ -28,6 +38,9 @@ struct _Instance
    Evas_Object *obj;
    int strength;
    char *oper;
+   int on;
+   int registered;
+   int init;
 };
 
 /* gadcon requirements */
@@ -50,6 +63,16 @@ static const E_Gadcon_Client_Class _gadcon_class =
 };
 static E_Module *mod = NULL;
 
+static void gsmModemState_callback(void *data, void *ret, DBusError *err);
+static void update_signal(int sig, void *data);
+static void* gsmModemState_unmarhsall(DBusMessage *msg, DBusError *err);
+static void gsmModemState_free(void *data);
+static void get_gsmModemState(void *data);
+static void fso_resource_changed(void* data, DBusMessage* msg);
+static void updateStatus(Instance* inst);
+static void setLabel(Evas_Object* obj, char* label);
+static void setLevel(Evas_Object* obj, int strength);
+static void setState(Evas_Object* obj, int state);
 static int try_again(void *data);
 static void *signal_unmarhsall(DBusMessage *msg, DBusError *err);
 static void *operator_unmarhsall(DBusMessage *msg, DBusError *err);
@@ -69,7 +92,8 @@ static void name_changed(void *data, DBusMessage *msg);
 static int
 try_again(void *data)
 {
-//   printf("GSM-gadget: Try again called\n");
+   printf("GSM-gadget: Try again called\n");
+   get_gsmModemState(data);
    get_signal(data);
    get_operator(data);
    try_again_timer = NULL;
@@ -131,11 +155,18 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    inst->obj = o;
    e_gadcon_client_util_menu_attach(gcc);
 
+   inst->init = TRUE;
+   inst->on = FALSE;
+   inst->registered = FALSE;
    inst->strength = -1;
    inst->oper = NULL;
 
    conn = e_dbus_bus_get(DBUS_BUS_SESSION);
    conn_system = e_dbus_bus_get(DBUS_BUS_SYSTEM);
+
+   printf("before updateState");
+   updateStatus(inst);
+   printf("after updateState");
 
    if (conn)
      {
@@ -166,6 +197,12 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 						    "org.freedesktop.DBus",
 						    "NameOwnerChanged",
 						    name_changed, inst);
+	device_status_changed_fso_h = e_dbus_signal_handler_add(conn_system,
+                                                "org.freesmartphone.ousaged",
+                                                "/org/freesmartphone/Usage",
+                                                "org.freesmartphone.Usage",
+                                                "ResourceChanged",
+                                                fso_resource_changed, inst);
 	changed_fso_h = e_dbus_signal_handler_add(conn_system,
 						  "org.freesmartphone.ogsmd",
 						  "/org/freesmartphone/GSM/Device",
@@ -179,6 +216,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 						     "Status",
 						     fso_operator_changed, inst);
      }
+   get_gsmModemState(inst);
    get_signal(inst);
    get_operator(inst);
 
@@ -247,50 +285,38 @@ _gc_id_new(E_Gadcon_Client_Class *client_class)
 }
 
 static void
-update_operator(char *op, void *data)
+update_operator(Instance *newData, void *data)
 {
    Instance *inst = data;
    char *poper;
+   char *op;
 
    poper = inst->oper;
-   if ((poper) && (op) && (!strcmp(op, poper))) return;
-   if (op) inst->oper = strdup(op);
-   else inst->oper = NULL;
-   if (inst->oper != poper)
-     {
-	Edje_Message_String msg;
+   op = newData->oper;
+   if (op)
+   {
+      inst->oper = strdup(op);
+      newData->oper = NULL;
+   }
+   else
+   {
+      inst->oper = NULL;
+   }
+   inst->registered = newData->registered;
+   updateStatus(inst);
+   if (poper)
+      free(poper);
 
-	if (inst->oper) msg.str = inst->oper;
-	else msg.str = "";
-	edje_object_message_send(inst->obj, EDJE_MESSAGE_STRING, 1, &msg);
-     }
-   if (poper) free(poper);
+   printf("GSM-gadget: update_operator finished\n"); 
 }
 
 static void
 update_signal(int sig, void *data)
 {
    Instance *inst = data;
-   int pstrength;
 
-   pstrength = inst->strength;
    inst->strength = sig;
-
-   if (inst->strength != pstrength)
-     {
-	Edje_Message_Float msg;
-	double level;
-
-	level = (double)inst->strength / 100.0;
-	if (level < 0.0) level = 0.0;
-	else if (level > 1.0) level = 1.0;
-	msg.val = level;
-	edje_object_message_send(inst->obj, EDJE_MESSAGE_FLOAT, 1, &msg);
-	if ((pstrength == -1) && (inst->strength >= 0))
-	  edje_object_signal_emit(inst->obj, "e,state,active", "e");
-	else if ((pstrength >= 0) && (inst->strength == -1))
-	  edje_object_signal_emit(inst->obj, "e,state,passive", "e");
-     }
+   updateStatus(inst);
 }
 
 
@@ -339,8 +365,11 @@ _fso_operator_unmarhsall(DBusMessage *msg)
     * informations get ingnored for the gadget for now */
    const char *provider = 0 , *name = 0, *reg_stat = 0;
    DBusMessageIter iter, a_iter, s_iter, v_iter;
+   Instance* newData = E_NEW(Instance, 1);
+   newData->oper = NULL;
 
-   if (!dbus_message_has_signature(msg, "a{sv}")) return NULL;
+
+   if (!dbus_message_has_signature(msg, "a{sv}")) return newData;
 
    dbus_message_iter_init(msg, &iter);
    dbus_message_iter_recurse(&iter, &a_iter);
@@ -364,14 +393,21 @@ _fso_operator_unmarhsall(DBusMessage *msg)
 	dbus_message_iter_next(&a_iter);
      }
 
-   if (!reg_stat) return NULL;
-   if (strcmp(reg_stat, "unregistered") == 0) provider = "No Service";
+   if (!reg_stat) return newData;
+   printf("GSM Gadget: registration status:%s\n",reg_stat);
+   newData->registered = TRUE;
+   if (strcmp(reg_stat, "unregistered") == 0)
+   {
+       newData->registered = FALSE;
+       provider = "No Service";
+   }
    else if (strcmp(reg_stat, "busy") == 0) provider = "Searching...";
    else if (strcmp(reg_stat, "denied") == 0) provider = "SOS only";
 
-   if (!provider) return NULL;
+   if (!provider) return newData;
+   newData->oper = strdup(provider);
 
-   return strdup(provider);
+   return newData;
 }
 
 static void *
@@ -383,7 +419,7 @@ fso_operator_unmarhsall(DBusMessage *msg, DBusError *err)
 static void
 signal_callback_qtopia(void *data, void *ret, DBusError *err)
 {
-//   printf("GSM-gadget: Qtopia signal callback called\n");
+   printf("GSM-gadget: Qtopia signal callback called\n");
    if (ret)
      {
 	int *val_ret;
@@ -404,7 +440,7 @@ signal_callback_qtopia(void *data, void *ret, DBusError *err)
      }
    else
      {
-//	printf("GSM-gadget: Qtopia signal callback  else part called\n");
+	printf("GSM-gadget: Qtopia signal callback  else part called\n");
 	detected_system = PH_SYS_UNKNOWN;
 	if (try_again_timer) ecore_timer_del(try_again_timer);
 	try_again_timer = ecore_timer_add(5.0, try_again, data);
@@ -414,7 +450,7 @@ signal_callback_qtopia(void *data, void *ret, DBusError *err)
 static void
 signal_callback_fso(void *data, void *ret, DBusError *err)
 {
-//   printf("GSM-gadget: FSO signal callback called\n");
+   printf("GSM-gadget: FSO signal callback called\n");
    if (ret)
      {
 	int *val_ret;
@@ -435,7 +471,7 @@ signal_callback_fso(void *data, void *ret, DBusError *err)
      }
    else
      {
-//	printf("GSM-gadget: FSO signal callback else part called\n");
+	printf("GSM-gadget: FSO signal callback else part called\n");
 	detected_system = PH_SYS_UNKNOWN;
 	if (try_again_timer) ecore_timer_del(try_again_timer);
 	try_again_timer = ecore_timer_add(5.0, try_again, data);
@@ -445,7 +481,7 @@ signal_callback_fso(void *data, void *ret, DBusError *err)
 static void
 operator_callback_qtopia(void *data, void *ret, DBusError *err)
 {
-//   printf("GSM-gadget: Qtopia operator callback called\n");
+   printf("GSM-gadget: Qtopia operator callback called\n");
    if (ret)
      {
 	if ((detected_system == PH_SYS_UNKNOWN) && (operatorch_h) && (conn))
@@ -459,11 +495,15 @@ operator_callback_qtopia(void *data, void *ret, DBusError *err)
 						      operator_changed, data);
 	     detected_system = PH_SYS_QTOPIA;
 	  }
-	update_operator(ret, data);
+	Instance* newData = E_NEW(Instance, 1);
+	newData->oper = ret;
+	newData->registered = TRUE;
+	update_operator(newData, data);
+	E_FREE(newData);
      }
    else
      {
-//	printf("GSM-gadget: Qtopia operator callback else part called\n");
+	printf("GSM-gadget: Qtopia operator callback else part called\n");
 	detected_system = PH_SYS_UNKNOWN;
 	if (try_again_timer) ecore_timer_del(try_again_timer);
 	try_again_timer = ecore_timer_add(5.0, try_again, data);
@@ -473,7 +513,7 @@ operator_callback_qtopia(void *data, void *ret, DBusError *err)
 static void
 operator_callback_fso(void *data, void *ret, DBusError *err)
 {
-//   printf("GSM-gadget: FSO operator callback called\n");
+   printf("GSM-gadget: FSO operator callback called\n");
    if (ret)
      {
 	if ((detected_system == PH_SYS_UNKNOWN) && (operatorch_fso_h) && (conn_system))
@@ -491,7 +531,7 @@ operator_callback_fso(void *data, void *ret, DBusError *err)
      }
    else
      {
-//	printf("GSM-gadget: FSO operator callback else part called\n");
+	printf("GSM-gadget: FSO operator callback else part called\n");
 	detected_system = PH_SYS_UNKNOWN;
 	if (try_again_timer) ecore_timer_del(try_again_timer);
 	try_again_timer = ecore_timer_add(5.0, try_again, data);
@@ -509,6 +549,104 @@ operator_result_free(void *data)
 {
    free(data);
 }
+
+static void gsmModemState_callback(void *data, void *ret, DBusError *err)
+{
+   printf("GSM-gadget: gsmModemState_callback started\n");
+   if (ret)
+   {
+      if ((detected_system == PH_SYS_UNKNOWN) && (device_status_changed_fso_h) && (conn_system))
+      {
+         e_dbus_signal_handler_del(conn_system, device_status_changed_fso_h);
+         device_status_changed_fso_h = e_dbus_signal_handler_add(conn_system,
+                                                "org.freesmartphone.ousaged",
+                                                "/org/freesmartphone/Usage",
+                                                "org.freesmartphone.Usage",
+                                                "ResourceChanged",
+                                                fso_resource_changed, data);
+         detected_system = PH_SYS_FSO;
+      }
+      Instance* inst = data;
+      int *val_ret;
+
+      val_ret = ret;
+      inst->init = FALSE;
+      if (*val_ret <= 0)
+      {
+         inst->on = FALSE;
+         inst->registered = FALSE;
+      }
+      else
+      {
+         inst->on = TRUE;
+      }
+      updateStatus(inst);
+   }
+   else
+   {
+      printf("GSM-gadget: gsmModemState_callback else part called\n");
+      detected_system = PH_SYS_UNKNOWN;
+      if (try_again_timer) ecore_timer_del(try_again_timer);
+      try_again_timer = ecore_timer_add(5.0, try_again, data);
+   }
+   printf("GSM-gadget: gsmModemState_callback finished\n");
+}
+
+static void* gsmModemState_unmarhsall(DBusMessage *msg, DBusError *err)
+{
+   printf("GSM-gadget: gsmModemState_unmarhsall started\n");
+   unsigned int *val = NULL;
+   
+   if (dbus_message_get_args(msg, NULL, DBUS_TYPE_BOOLEAN, &val, DBUS_TYPE_INVALID))
+   {
+      int *val_ret;
+       
+       val_ret = malloc(sizeof(int));
+       if (val_ret)
+         {
+            *val_ret = val;
+            printf("GSM-gadget: gsmModemState_unmarhsall finished\n");
+            return val_ret;
+         }
+     }
+   printf("GSM-gadget: gsmModemState_unmarhsall finished (NULL)\n");
+   return NULL;
+}
+
+static void gsmModemState_free(void *data)
+{
+    printf("GSM-gadget: gsmModemState started\n");
+   free(data);
+    printf("GSM-gadget: gsmModemState finished\n");
+}
+
+static void get_gsmModemState(void *data)
+{
+    DBusMessage *msg;
+    
+    printf("GSM-gadget: Get gsm modem state called\n");
+    if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_FSO)) && (conn_system))
+    {
+        msg = dbus_message_new_method_call("org.freesmartphone.ousaged",
+                                          "/org/freesmartphone/Usage",
+                                          "org.freesmartphone.Usage",
+                                          "GetResourceState");
+        if (msg)
+        {
+
+            DBusMessageIter iter;
+            const char *str;
+            dbus_message_iter_init_append(msg, &iter);
+            str = "GSM";
+            dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &str);
+
+            e_dbus_method_call_send(conn_system, msg,gsmModemState_unmarhsall,gsmModemState_callback,gsmModemState_free, -1, data);
+            dbus_message_unref(msg);
+        }
+    }
+    printf("GSM-gadget: Get gsm modem state call finished\n");
+}
+
 
 static void
 get_signal(void *data)
@@ -553,7 +691,7 @@ get_operator(void *data)
 {
    DBusMessage *msg;
 
-//   printf("GSM-gadget: Get operator called\n");
+   printf("GSM-gadget: Get operator called\n");
    if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_QTOPIA)) && (conn))
      {
 	msg = dbus_message_new_method_call("org.openmoko.qtopia.Phonestatus",
@@ -607,16 +745,66 @@ operator_changed(void *data, DBusMessage *msg)
    dbus_error_init(&err);
    if (!dbus_message_get_args(msg, &err, DBUS_TYPE_STRING, &str, DBUS_TYPE_INVALID))
      return;
-   update_operator(str, data);
+
+   Instance* newData = E_NEW(Instance, 1);
+   newData->oper = str;
+   newData->registered = TRUE;
+   update_operator(newData, data);
+   E_FREE(newData);
+
 }
 
 static void
 fso_operator_changed(void *data, DBusMessage *msg)
 {
-   char *provider;
+   printf("GSM Gadget: fso_operator_changed started\n");
+   Instance* newData;
+   newData = _fso_operator_unmarhsall(msg);
+   update_operator(newData, data);
+   E_FREE(newData);
+   printf("GSM Gadget: fso_operator_changed finished\n");
+}
 
-   provider = _fso_operator_unmarhsall(msg);
-   update_operator(provider, data);
+static void fso_resource_changed(void* data, DBusMessage* msg)
+{
+    printf("GSM-gadget: fso_resource_changed started\n");
+    Instance* inst = data;
+    DBusError err;
+    DBusMessageIter args;
+
+    char *resource = NULL;
+    bool state = NULL;
+   
+    dbus_error_init(&err);
+    if (dbus_message_has_signature(msg, "sba{sv}"))
+    {
+        printf("GSM-gadget: fso_resource_changed extract 1.parameter\n");
+       dbus_message_iter_init(msg, &args);
+       dbus_message_iter_get_basic(&args, &resource);
+        printf("GSM-gadget: fso_resource_changed extract 2.parameter\n");
+       dbus_message_iter_next(&args);
+       dbus_message_iter_get_basic(&args, &state);
+       printf("GSM-gadget: fso_resource_changed resource: %s\n", resource);
+        if (strcmp("GSM",resource) == 0)
+        {
+            if (state == FALSE)
+            {
+                inst->on = FALSE;
+                inst->registered = FALSE;
+            }
+            else
+            {
+                inst->on = TRUE;
+            }
+            updateStatus(inst);
+        }
+    }
+    else
+    {
+        printf("GSM-gadget: fso_resource_changed wrong message format\n");
+    }
+    printf("GSM-gadget: fso_resource_changed finished\n");
+
 }
 
 static void
@@ -634,7 +822,7 @@ name_changed(void *data, DBusMessage *msg)
      return;
    if ((!strcmp(s1, "org.openmoko.qtopia.Phonestatus")) && (conn))
      {
-//	printf("GSM-gadget: Qtopia name owner changed\n");
+	printf("GSM-gadget: Qtopia name owner changed\n");
 	if (changed_h)
 	  {
 	     e_dbus_signal_handler_del(conn, changed_h);
@@ -660,7 +848,17 @@ name_changed(void *data, DBusMessage *msg)
      }
    else if ((!strcmp(s1, "org.freesmartphone.ogsmd")) && (conn_system))
      {
-//	printf("GSM-gadget: FSO name owner changed\n");
+	printf("GSM-gadget: FSO name owner changed\n");
+      if (device_status_changed_fso_h)
+      {
+         e_dbus_signal_handler_del(conn_system, device_status_changed_fso_h);
+         device_status_changed_fso_h = e_dbus_signal_handler_add(conn_system,
+                                                "org.freesmartphone.ousaged",
+                                                "/org/freesmartphone/Usage",
+                                                "org.freesmartphone.Usage",
+                                                "ResourceChanged",
+                                                fso_resource_changed, data);
+      }
 	if (changed_fso_h) 
 	  {
 	     e_dbus_signal_handler_del(conn_system, changed_fso_h);
@@ -685,4 +883,95 @@ name_changed(void *data, DBusMessage *msg)
 	  }
      }
    return;
+}
+
+static void updateStatus(Instance* inst)
+{
+    printf("GSM-gadget: updateStatus started\n");
+    if (inst->init)
+    {
+        printf("GSM-gadget: updateStatus init = TRUE\n");
+        setLabel(inst->obj, "Init...");
+        setState(inst->obj, FALSE);
+    }
+    else
+    {
+        printf("GSM-gadget: updateStatus init = FALSE\n");
+        if (inst->on)
+        {
+            printf("GSM-gadget: updateStatus on = TRUE\n");
+            setState(inst->obj, TRUE);
+            if (inst->registered)
+            {
+                printf("GSM-gadget: updateStatus registered = TRUE\n");
+                setLabel(inst->obj, inst->oper);
+                setLevel(inst->obj, inst->strength);
+            }
+            else
+            {
+                printf("GSM-gadget: updateStatus registered = FALSE\n");
+                setLabel(inst->obj, "None");
+                setLevel(inst->obj, 0);
+            }
+        }
+        else
+        {
+            printf("GSM-gadget: updateStatus on = FALSE\n");
+            setLabel(inst->obj, "Off");
+            setState(inst->obj, FALSE);
+        }
+    }
+    printf("GSM-gadget: updateStatus finished\n");
+}
+
+static void setLabel(Evas_Object* obj, char* label)
+{
+    Edje_Message_String msg;
+    msg.str = label;
+    edje_object_message_send(obj, EDJE_MESSAGE_STRING, 1, &msg);
+}
+
+static void setLevel(Evas_Object* obj, int strength)
+{
+    Edje_Message_Float msg;
+    double level;
+    if (strength > 80)
+    {
+        level = 1.0;
+    }
+    else if (strength > 60)
+    {
+        level = 0.8;
+    }
+    else if (strength > 40)
+    {
+        level = 0.6;
+    }
+    else if (strength > 20)
+    {
+        level = 0.4;
+    }
+    else if (strength > 0)
+    {
+        level = 0.2;
+    }
+    else
+    {
+        level = 0.0;
+    }
+    printf("GSM Gadget: setlevel level=%f strength=%d",level,strength);
+    msg.val = level;
+    edje_object_message_send(obj, EDJE_MESSAGE_FLOAT, 1, &msg);
+}
+
+static void setState(Evas_Object* obj, int state)
+{
+    if (state)
+    {
+        edje_object_signal_emit(obj, "e,state,active", "e");
+    }
+    else
+    {
+        edje_object_signal_emit(obj, "e,state,passive", "e");
+    }
 }
