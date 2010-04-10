@@ -14,6 +14,7 @@ struct _Instance
    E_Gadcon_Client *gcc;
    Evas_Object *o_btn;
    enum Mode mode;
+   Ecore_Event_Handler *hdl;
 };
 
 /* local function prototypes */
@@ -25,6 +26,8 @@ static Evas_Object *_gc_icon(E_Gadcon_Client_Class *cc, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *cc);
 static void _cb_btn_click(void *data, void *data2);
 static void _set_icon(Instance *inst);
+static int _cb_event_right_button_up(void *data, int type, void *event);
+static void _set_touchscreen_mode(Instance *inst, enum Mode mode);
 
 /* local variables */
 static Eina_List *instances = NULL;
@@ -76,9 +79,10 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
                                      _cb_btn_click, inst, NULL);
    inst->gcc = e_gadcon_client_new(gc, name, id, style, inst->o_btn);
    inst->gcc->data = inst;
+   inst->hdl = NULL;
 
-   _set_icon(inst);
-
+   _set_touchscreen_mode(inst, MODE_LEFT);
+   
    instances = eina_list_append(instances, inst);
    return inst->gcc;
 }
@@ -130,30 +134,50 @@ _gc_id_new(E_Gadcon_Client_Class *cc)
 }
 
 static void
-_set_touchscreen_mode(enum Mode mode)
+_set_touchscreen_mode(Instance *inst, enum Mode mode)
 {
+   if (inst->hdl) {
+      ecore_event_handler_del(inst->hdl);
+      inst->hdl = NULL;
+   }
    switch (mode) {
       case MODE_LEFT:
          system("xinput set-button-map Touchscreen 1 2 3 4 5");
          break;
       case MODE_1RIGHT: /*FIXME: make 1RIGHT usable */
       case MODE_RIGHT:
+         inst->hdl = ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
+                                       _cb_event_right_button_up, inst);
          system("xinput set-button-map Touchscreen 3 2 1 4 5");
          break;
    }
+   inst->mode = mode;
+   _set_icon(inst);
 }
+static int
+_cb_event_right_button_up(void *data, int type, void *event)
+{
+   /* If we get here, the handler is already registered, which means
+    we are in 1RIGHT mode */
+   Instance *inst;
+   if (!(inst = data)) return 1;
+
+   _set_touchscreen_mode(inst, MODE_LEFT);
+   return 0;
+}
+
 static void 
 _cb_btn_click(void *data, void *data2) 
 {
    Instance *inst;
+   enum Mode mode;
 
    if (!(inst = data)) return;
 
-   inst->mode += 1;
-   if (inst->mode > MODE_RIGHT)
-     inst->mode = MODE_LEFT;
-   _set_touchscreen_mode(inst->mode);
-   _set_icon(inst);
+   mode = inst->mode + 1;
+   if (mode > MODE_RIGHT)
+     mode = MODE_LEFT;
+   _set_touchscreen_mode(inst, mode);
 }
 
 
