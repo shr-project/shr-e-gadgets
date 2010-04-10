@@ -19,5 +19,7 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 src/module.desktop
+src/illume-rightclick-toggle/Makefile
+src/illume-rightclick-toggle/module.desktop
 ])
 

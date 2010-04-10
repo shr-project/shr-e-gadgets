@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Link
+Name=Illume-Rightclick-Toggle
+Icon=e-module-illume-rightclick-toggle
+X-Enlightenment-ModuleType=system
+Comment=A module to toggle right click on touch screens.
