@@ -384,7 +384,7 @@ _fso_operator_unmarhsall(DBusMessage *msg)
 	     dbus_message_iter_recurse(&s_iter, &v_iter);
 	     dbus_message_iter_get_basic(&v_iter, &reg_stat);
 	  }
-	if (strcmp(name, "provider") == 0)
+	if (strcmp(name, "display") == 0)
 	  {
 	     dbus_message_iter_next(&s_iter);
 	     dbus_message_iter_recurse(&s_iter, &v_iter);
