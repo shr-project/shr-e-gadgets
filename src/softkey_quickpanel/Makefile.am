@@ -18,7 +18,7 @@ files_DATA = \
 	     data/close.png \
 	     data/back.png
 
-	     EXTRA_DIST = $(files_DATA)
+EXTRA_DIST = $(files_DATA)
 
 xsessiondir = $(sysconfdir)/X11/Xsession.d
 xsession_SCRIPTS = data/90shr_elm_softkey
