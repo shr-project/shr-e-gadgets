@@ -39,11 +39,5 @@ module_la_LIBADD       = @ENLIGHTENMENT_LIBS@
 module_la_LDFLAGS      = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h
 
-wifigetdir = $(pkgdir)
-
-wifiget_PROGRAMS        = wifiget
-wifiget_SOURCES         = wifiget.c
-wifiget_LDFLAGS         =
-
 uninstall:
 	rm -rf $(DESTDIR)$(libdir)/enlightenment/modules/$(MODULE)

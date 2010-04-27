@@ -164,6 +164,7 @@ _gc_id_new(E_Gadcon_Client_Class *client_class)
 static void
 _wifiget_spawn(Instance *inst)
 {
+   return; /*FIXME: hack. to remove wifiget. */
    char buf[4096];
    
    if (inst->wifiget_exe) return;
