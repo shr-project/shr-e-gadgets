@@ -8,7 +8,7 @@ bin_PROGRAMS = shr_elm_softkey
 
 ELMSOFTKEYHEADERS = \
               elm_softkey.h
-AM_CFLAGS = -DPACKAGE_DATA_DIR=\"$(pkgdatadir)\"
+AM_CFLAGS = -DPACKAGE_DATA_DIR=\"$(datadir)/shr_elm_softkey\"
 shr_elm_softkey_SOURCES = \
             $(ELMSOFTKEYHEADERS) \
             main.c
