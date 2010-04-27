@@ -1,4 +1,3 @@
-SUBDIRS = illume-rightclick-toggle
 MAINTAINERCLEANFILES = Makefile.in
 MODULE = shr-e-gadgets
 #manual hack until I found out how to take e's release version

@@ -18,7 +18,8 @@ AC_SUBST(E_VERSION, `pkg-config --variable=release enlightenment`)
 AC_OUTPUT([
 Makefile
 src/Makefile
-src/module.desktop
+src/shelf-gadgets/Makefile
+src/shelf-gadgets/module.desktop
 src/illume-rightclick-toggle/Makefile
 src/illume-rightclick-toggle/module.desktop
 ])
