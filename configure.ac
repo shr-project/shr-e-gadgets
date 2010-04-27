@@ -14,10 +14,15 @@ PKG_CHECK_MODULES(ENLIGHTENMENT, enlightenment)
 AC_SUBST(DATADIR, $datadir)
 AC_SUBST(BINDIR, $bindir)
 AC_SUBST(E_VERSION, `pkg-config --variable=release enlightenment`)
+PKG_CHECK_MODULES(ELM_SOFTKEY, [
+  ecore-x
+  elementary
+])
 
 AC_OUTPUT([
 Makefile
 src/Makefile
+src/softkey_quickpanel/Makefile
 src/shelf-gadgets/Makefile
 src/shelf-gadgets/module.desktop
 src/illume-rightclick-toggle/Makefile

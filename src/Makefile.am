@@ -1,1 +1,1 @@
-SUBDIRS = shelf-gadgets illume-rightclick-toggle
+SUBDIRS = shelf-gadgets illume-rightclick-toggle softkey_quickpanel
