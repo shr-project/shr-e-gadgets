@@ -7,7 +7,6 @@ static void _cb_win_del(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
 
-#define PACKAGE_DATA_DIR "fixme"
 /* local variables */
 
 EAPI int 
