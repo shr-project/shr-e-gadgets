@@ -1,0 +1,3 @@
+#!/bin/sh -e
+/usr/bin/shr_elm_softkey &
+
