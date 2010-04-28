@@ -6,6 +6,7 @@
 static void _cb_win_del(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
+static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
 
 /* local variables */
 
@@ -99,6 +100,23 @@ elm_main(int argc, char **argv)
 				 elm_box_pack_end(box, btn);
 				 evas_object_show(btn);
 				 evas_object_show(icon);
+				 
+				 icon = elm_icon_add(win);
+				 snprintf(buff, sizeof(buff), "%s/images/forward.png", 
+							 PACKAGE_DATA_DIR);
+				 elm_icon_file_set(icon, buff, NULL);
+				 evas_object_size_hint_aspect_set(icon, 
+															 EVAS_ASPECT_CONTROL_VERTICAL, 
+															 1, 1);
+
+				 btn = elm_button_add(win);
+				 elm_button_icon_set(btn, icon);
+				 evas_object_smart_callback_add(btn, "clicked", 
+														  _cb_btn_forward_clicked, win);
+				 evas_object_size_hint_align_set(btn, 1.0, 0.5);
+				 elm_box_pack_end(box, btn);
+				 evas_object_show(btn);
+				 evas_object_show(icon);
 
 				 ecore_x_window_geometry_get(zones[x], &zx, &zy, &zw, &zh);
 				 ecore_x_e_illume_softkey_geometry_set(zones[x], zx, 
@@ -138,6 +156,7 @@ _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event)
 	if (!(win = data)) return;
 	zone = (Ecore_X_Window)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_close_send(zone);
+	ecore_x_e_illume_quickpanel_state_send(zone, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
 }
 
 static void 
@@ -151,5 +170,15 @@ _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event)
 	ecore_x_e_illume_focus_back_send(zone);
 }
 
+static void 
+_cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event) 
+{
+	Evas_Object *win;
+	Ecore_X_Window zone;
+
+	if (!(win = data)) return;
+	zone = (Ecore_X_Window)evas_object_data_get(win, "zone");
+	ecore_x_e_illume_focus_forward_send(zone);
+}
 #endif
 ELM_MAIN();
