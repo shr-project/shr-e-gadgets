@@ -16,7 +16,8 @@ shr_elm_softkey_LDADD = @ELM_SOFTKEY_LIBS@
 filesdir = $(datadir)/shr_elm_softkey/images
 files_DATA = \
 	     data/close.png \
-	     data/back.png
+	     data/back.png \
+	     data/forward.png
 
 EXTRA_DIST = $(files_DATA)
 
