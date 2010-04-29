@@ -364,6 +364,8 @@ _fso_operator_unmarhsall(DBusMessage *msg)
    /* We care only about the provider name right now. All the other status
     * informations get ingnored for the gadget for now */
    const char *provider = 0 , *name = 0, *reg_stat = 0;
+   const char *display = 0;
+   dbus_int32_t strength;
    DBusMessageIter iter, a_iter, s_iter, v_iter;
    Instance* newData = E_NEW(Instance, 1);
    newData->oper = NULL;
@@ -384,11 +386,24 @@ _fso_operator_unmarhsall(DBusMessage *msg)
 	     dbus_message_iter_recurse(&s_iter, &v_iter);
 	     dbus_message_iter_get_basic(&v_iter, &reg_stat);
 	  }
-	if (strcmp(name, "display") == 0)
+	if (strcmp(name, "provider") == 0)
 	  {
 	     dbus_message_iter_next(&s_iter);
 	     dbus_message_iter_recurse(&s_iter, &v_iter);
 	     dbus_message_iter_get_basic(&v_iter, &provider);
+	  }
+	if (strcmp(name, "display") == 0)
+	  {
+	     dbus_message_iter_next(&s_iter);
+	     dbus_message_iter_recurse(&s_iter, &v_iter);
+	     dbus_message_iter_get_basic(&v_iter, &display);
+	  }
+	if (strcmp(name, "strength") == 0)
+	  {
+	     dbus_message_iter_next(&s_iter);
+	     dbus_message_iter_recurse(&s_iter, &v_iter);
+	     dbus_message_iter_get_basic(&v_iter, &strength);
+	     newData->strength = strength;
 	  }
 	dbus_message_iter_next(&a_iter);
      }
@@ -404,8 +419,8 @@ _fso_operator_unmarhsall(DBusMessage *msg)
    else if (strcmp(reg_stat, "busy") == 0) provider = "Searching...";
    else if (strcmp(reg_stat, "denied") == 0) provider = "SOS only";
 
-   if (!provider) return newData;
-   newData->oper = strdup(provider);
+   if (display && *display) newData->oper = strdup(display);
+   else if (provider && *provider) newData->oper = strdup(provider);
 
    return newData;
 }
