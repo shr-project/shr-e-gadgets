@@ -22,5 +22,5 @@ files_DATA = \
 EXTRA_DIST = $(files_DATA)
 
 xsessiondir = $(sysconfdir)/X11/Xsession.d
-xsession_SCRIPTS = data/90shr_elm_softkey
+xsession_SCRIPTS = data/89shr_elm_softkey
 
