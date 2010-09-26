@@ -1,3 +1,0 @@
-#!/bin/sh -e
-(sleep 10; /usr/bin/shr_elm_softkey) &
-
