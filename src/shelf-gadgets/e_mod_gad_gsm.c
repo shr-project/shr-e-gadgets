@@ -943,6 +943,7 @@ static void updateStatus(Instance* inst)
 static void setLabel(Evas_Object* obj, char* label)
 {
     Edje_Message_String msg;
+    if (!label) return;
     msg.str = label;
     edje_object_message_send(obj, EDJE_MESSAGE_STRING, 1, &msg);
 }
