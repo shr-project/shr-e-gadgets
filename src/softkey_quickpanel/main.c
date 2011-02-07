@@ -13,14 +13,13 @@ static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
 EAPI int 
 elm_main(int argc, char **argv) 
 {
-	Ecore_X_Window root, *zones = NULL;
-	Evas_Object *win;
-	Evas_Object *bg, *box, *btn, *icon;
-	Ecore_X_Window xwin;
+	Ecore_X_Window root, *zones = NULL, xwin;
 	Ecore_X_Window_State states[2];
+	Evas_Object *win, *bg, *box, *btn, *icon;
 	char buff[PATH_MAX];
 	int zx, zy, zw, zh, finger = elm_finger_size_get();
-	int num = 0, i = 0, x = 0, count = 0;
+	int count = 0;
+	unsigned int *zoneid;
 
 	root = ecore_x_window_root_first_get();
 	if (!root) return EXIT_FAILURE;
@@ -29,6 +28,9 @@ elm_main(int argc, char **argv)
 
 	if (!zones) return EXIT_FAILURE;
 
+	zoneid = calloc(1, sizeof(unsigned int));
+	*zoneid = zones[0];
+
 	/* create new window */
 	win = elm_win_add(NULL, "Illume-Softkey", ELM_WIN_BASIC);
 	elm_win_title_set(win, "Illume Softkey");
@@ -36,7 +38,7 @@ elm_main(int argc, char **argv)
 	elm_win_quickpanel_priority_major_set(win, 5);
 	elm_win_quickpanel_priority_minor_set(win, 5);
 	evas_object_smart_callback_add(win, "delete-request", _cb_win_del, NULL);
-	evas_object_data_set(win, "zone", (const void *)zones[0]);
+	evas_object_data_set(win, "zone", (const void *)zoneid);
 
 	xwin = elm_win_xwindow_get(win);
 	ecore_x_icccm_hints_set(xwin, 0, 0, 0, 0, 0, 0, 0);
@@ -117,10 +119,10 @@ elm_main(int argc, char **argv)
 static void 
 _cb_win_del(void *data, Evas_Object *obj, void *event) 
 {
-	Ecore_X_Window zone;
+	Ecore_X_Window *zone;
 
-	zone = (Ecore_X_Window)evas_object_data_get(obj, "zone");
-	ecore_x_e_illume_softkey_geometry_set(zone, 0, 0, 0, 0);
+	zone = (Ecore_X_Window*)evas_object_data_get(obj, "zone");
+	ecore_x_e_illume_softkey_geometry_set(*zone, 0, 0, 0, 0);
 
 	elm_exit();
 }
@@ -129,34 +131,34 @@ static void
 _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event) 
 {
 	Evas_Object *win;
-	Ecore_X_Window zone;
+	Ecore_X_Window *zone;
 
 	if (!(win = data)) return;
-	zone = (Ecore_X_Window)evas_object_data_get(win, "zone");
-	ecore_x_e_illume_close_send(zone);
-	ecore_x_e_illume_quickpanel_state_send(zone, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
+	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
+	ecore_x_e_illume_close_send(*zone);
+	ecore_x_e_illume_quickpanel_state_send(*zone, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
 }
 
 static void 
 _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event) 
 {
 	Evas_Object *win;
-	Ecore_X_Window zone;
+	Ecore_X_Window *zone;
 
 	if (!(win = data)) return;
-	zone = (Ecore_X_Window)evas_object_data_get(win, "zone");
-	ecore_x_e_illume_focus_back_send(zone);
+	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
+	ecore_x_e_illume_focus_back_send(*zone);
 }
 
 static void 
 _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event) 
 {
 	Evas_Object *win;
-	Ecore_X_Window zone;
+	Ecore_X_Window *zone;
 
 	if (!(win = data)) return;
-	zone = (Ecore_X_Window)evas_object_data_get(win, "zone");
-	ecore_x_e_illume_focus_forward_send(zone);
+	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
+	ecore_x_e_illume_focus_forward_send(*zone);
 }
 #endif
 ELM_MAIN();
