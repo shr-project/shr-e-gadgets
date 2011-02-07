@@ -1,9 +1,8 @@
 [Desktop Entry]
-Encoding=UTF-8
 Name=shr_elm_softkey
 Exec=shr_elm_softkey
 Terminal=false
 Type=Application
 NoDisplay=true
 StartupNotify=false
-Categories=Application;Utility;
+Categories=Utility;
