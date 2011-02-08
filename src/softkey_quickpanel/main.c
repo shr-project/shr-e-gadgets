@@ -3,12 +3,10 @@
 #ifndef ELM_LIB_QUICKLAUNCH
 
 /* local function prototypes */
-static void _cb_win_vis_tog(void *data, Evas_Object *obj, void *event);
 static void _cb_win_del(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
-static void _cb_btn_apps_clicked(void *data, Evas_Object *obj, void *event);
 
 /* local variables */
 
@@ -104,19 +102,6 @@ elm_main(int argc, char **argv)
 	evas_object_show(icon);
 	evas_object_show(btn);
 
-	icon = elm_icon_add(win);
-	elm_icon_file_set(icon, "apps", NULL);
-	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
-
-	btn = elm_button_add(win);
-	elm_button_icon_set(btn, icon);
-	evas_object_smart_callback_add(btn, "clicked", _cb_btn_apps_clicked, win);
-	evas_object_size_hint_align_set(btn, 0.5, 0.5);
-	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_table_pack(table, btn, 1, 1, 1, 1);
-	evas_object_show(icon);
-	evas_object_show(btn);
-
 	evas_object_show(table);
 
 	ecore_x_window_geometry_get(zones[0], &zx, &zy, &zw, &zh);
@@ -133,16 +118,6 @@ elm_main(int argc, char **argv)
 
 	elm_shutdown();
 	return EXIT_SUCCESS;
-}
-
-static void 
-_cb_win_vis_tog(void *data, Evas_Object *obj, void *event) 
-{
-	if(visible)
-		visible=EINA_FALSE;
-	else
-		visible=EINA_TRUE;
-	printf("Current status is %s\n", visible?"visible":"invisible");
 }
 
 static void 
@@ -188,48 +163,6 @@ _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event)
 	if (!(win = data)) return;
 	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_focus_forward_send(*zone);
-}
-
-static void 
-_cb_btn_apps_clicked(void *data, Evas_Object *obj, void *event) 
-{
-	Evas_Object *win = (Evas_Object*)data;
-	Ecore_X_Window *children;
-	Ecore_X_Window_State *state;
-	int count = 0, i, snum = 0, j, print = 1;
-	char *name = NULL, *title = NULL;
-
-	//zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
-	//ecore_x_e_illume_focus_forward_send(*zone);
-
-	count = ecore_x_window_prop_window_list_get(root, ECORE_X_ATOM_NET_CLIENT_LIST, &children);
-	if( (!children) || (count == 0) ) return;
-
-	for(i = 0; i < count ; i++)
-	{
-		ecore_x_netwm_window_state_get(children[i], &state, &snum);
-		ecore_x_icccm_name_class_get(children[i], &name, NULL);
-		for (j = 0; j < snum; j++, state++)
-			if ( (*state == ECORE_X_WINDOW_STATE_SKIP_TASKBAR) || (*state == ECORE_X_WINDOW_STATE_SKIP_PAGER) )
-				print = 0;
-		if(print)
-		{
-			if (name)
-			{
-				printf("Name: %s\n", name);
-				free(name);
-			}
-			title = ecore_x_icccm_title_get(children[i]);
-			if (title)
-			{
-				printf("\tTitle: %s\n", title);
-				free(title);
-			}
-		}
-	}
-	printf("Freeing children\n");
-	free(children);
-	printf("Freed!\n");
 }
 
 #endif
