@@ -3,19 +3,24 @@
 #ifndef ELM_LIB_QUICKLAUNCH
 
 /* local function prototypes */
+static void _cb_win_vis_tog(void *data, Evas_Object *obj, void *event);
 static void _cb_win_del(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
+static void _cb_btn_apps_clicked(void *data, Evas_Object *obj, void *event);
 
 /* local variables */
+
+Eina_Bool visible=0;
+Ecore_X_Window root;
 
 EAPI int 
 elm_main(int argc, char **argv) 
 {
-	Ecore_X_Window root, *zones = NULL, xwin;
+	Ecore_X_Window *zones = NULL, xwin;
 	Ecore_X_Window_State states[2];
-	Evas_Object *win, *bg, *box, *btn, *icon;
+	Evas_Object *win, *bg, *table, *btn, *icon;
 	char buff[PATH_MAX];
 	int zx, zy, zw, zh, finger = elm_finger_size_get();
 	int count = 0;
@@ -51,13 +56,11 @@ elm_main(int argc, char **argv)
 	elm_win_resize_object_add(win, bg);
 	evas_object_show(bg);
 
-	box = elm_box_add(win);
-	elm_box_horizontal_set(box, EINA_TRUE);
-	elm_box_homogenous_set(box, EINA_TRUE);
-	elm_box_padding_set(box, finger/2, finger/4);
-	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_win_resize_object_add(win, box);
-	evas_object_show(box);
+	table = elm_table_add(win);
+	elm_table_homogenous_set(table, EINA_TRUE);
+	//elm_box_padding_set(box, finger/2, finger/4);
+	evas_object_size_hint_weight_set(table, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_win_resize_object_add(win, table);
 
 	icon = elm_icon_add(win);
 	snprintf(buff, sizeof(buff), "%s/images/back.png", PACKAGE_DATA_DIR);
@@ -69,9 +72,9 @@ elm_main(int argc, char **argv)
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_back_clicked, win);
 	evas_object_size_hint_align_set(btn, 0.5, 0.5);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_box_pack_end(box, btn);
-	evas_object_show(btn);
+	elm_table_pack(table, btn, 0, 0, 1, 1);
 	evas_object_show(icon);
+	evas_object_show(btn);
 
 	icon = elm_icon_add(win);
 	snprintf(buff, sizeof(buff), "%s/images/close.png", PACKAGE_DATA_DIR);
@@ -83,9 +86,9 @@ elm_main(int argc, char **argv)
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_close_clicked, win);
 	evas_object_size_hint_align_set(btn, 0.5, 0.5);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_box_pack_end(box, btn);
-	evas_object_show(btn);
+	elm_table_pack(table, btn, 1, 0, 1, 1);
 	evas_object_show(icon);
+	evas_object_show(btn);
 
 	icon = elm_icon_add(win);
 	snprintf(buff, sizeof(buff), "%s/images/forward.png", PACKAGE_DATA_DIR);
@@ -97,15 +100,31 @@ elm_main(int argc, char **argv)
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_forward_clicked, win);
 	evas_object_size_hint_align_set(btn, 0.5, 0.5);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_box_pack_end(box, btn);
-	evas_object_show(btn);
+	elm_table_pack(table, btn, 2, 0, 1, 1);
 	evas_object_show(icon);
+	evas_object_show(btn);
+
+	icon = elm_icon_add(win);
+	elm_icon_file_set(icon, "apps", NULL);
+	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+
+	btn = elm_button_add(win);
+	elm_button_icon_set(btn, icon);
+	evas_object_smart_callback_add(btn, "clicked", _cb_btn_apps_clicked, win);
+	evas_object_size_hint_align_set(btn, 0.5, 0.5);
+	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_table_pack(table, btn, 1, 1, 1, 1);
+	evas_object_show(icon);
+	evas_object_show(btn);
+
+	evas_object_show(table);
 
 	ecore_x_window_geometry_get(zones[0], &zx, &zy, &zw, &zh);
 	ecore_x_e_illume_softkey_geometry_set(zones[0], zx, (zy + zh - finger), zw, finger);
 
 	evas_object_move(win, zx, (zy + zh - finger));
 	evas_object_resize(win, zw, finger);
+
 	evas_object_show(win);
 
 	free(zones);
@@ -114,6 +133,16 @@ elm_main(int argc, char **argv)
 
 	elm_shutdown();
 	return EXIT_SUCCESS;
+}
+
+static void 
+_cb_win_vis_tog(void *data, Evas_Object *obj, void *event) 
+{
+	if(visible)
+		visible=EINA_FALSE;
+	else
+		visible=EINA_TRUE;
+	printf("Current status is %s\n", visible?"visible":"invisible");
 }
 
 static void 
@@ -160,5 +189,48 @@ _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event)
 	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_focus_forward_send(*zone);
 }
+
+static void 
+_cb_btn_apps_clicked(void *data, Evas_Object *obj, void *event) 
+{
+	Evas_Object *win = (Evas_Object*)data;
+	Ecore_X_Window *children;
+	Ecore_X_Window_State *state;
+	int count = 0, i, snum = 0, j, print = 1;
+	char *name = NULL, *title = NULL;
+
+	//zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
+	//ecore_x_e_illume_focus_forward_send(*zone);
+
+	count = ecore_x_window_prop_window_list_get(root, ECORE_X_ATOM_NET_CLIENT_LIST, &children);
+	if( (!children) || (count == 0) ) return;
+
+	for(i = 0; i < count ; i++)
+	{
+		ecore_x_netwm_window_state_get(children[i], &state, &snum);
+		ecore_x_icccm_name_class_get(children[i], &name, NULL);
+		for (j = 0; j < snum; j++, state++)
+			if ( (*state == ECORE_X_WINDOW_STATE_SKIP_TASKBAR) || (*state == ECORE_X_WINDOW_STATE_SKIP_PAGER) )
+				print = 0;
+		if(print)
+		{
+			if (name)
+			{
+				printf("Name: %s\n", name);
+				free(name);
+			}
+			title = ecore_x_icccm_title_get(children[i]);
+			if (title)
+			{
+				printf("\tTitle: %s\n", title);
+				free(title);
+			}
+		}
+	}
+	printf("Freeing children\n");
+	free(children);
+	printf("Freed!\n");
+}
+
 #endif
 ELM_MAIN();
