@@ -7,6 +7,8 @@ static void _cb_win_del(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_close_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
+static void _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event);
+static void show_tasklist(void);
 
 /* local variables */
 
@@ -108,6 +110,19 @@ elm_main(int argc, char **argv)
 	evas_object_show(icon);
 	evas_object_show(btn);
 
+	icon = elm_icon_add(win);
+	elm_icon_file_set(icon, THEME, "down");
+	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+
+	btn = elm_button_add(win);
+	elm_button_icon_set(btn, icon);
+	evas_object_smart_callback_add(btn, "clicked", _cb_btn_down_clicked, win);
+	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_table_pack(table, btn, 1, 1, 1, 1);
+	evas_object_show(icon);
+	evas_object_show(btn);
+
 	evas_object_show(table);
 
 	ecore_x_window_geometry_get(zones[0], &zx, &zy, &zw, &zh);
@@ -171,6 +186,45 @@ _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event)
 	if (!(win = data)) return;
 	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_focus_forward_send(*zone);
+}
+
+static void 
+_cb_btn_down_clicked(void *data, Evas_Object *obj, void *event) 
+{
+	Evas_Object *quickpanel = (Evas_Object*)data;
+	Ecore_X_Window *zone;
+
+	/* hide the quickpanel as it's no longer necessary */
+	if (!quickpanel) return;
+	zone = (Ecore_X_Window*)evas_object_data_get(quickpanel, "zone");
+	ecore_x_e_illume_quickpanel_state_send(*zone, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
+	show_tasklist();
+}
+
+static void show_tasklist(void)
+{
+	Evas_Object *win, *bg, *box, *list;
+
+	win = elm_win_add(NULL, "Illume-Softkey-Tasklist", ELM_WIN_BASIC);
+	elm_win_title_set(win, "Running Tasks");
+	elm_win_autodel_set(win, EINA_TRUE);
+
+	bg = elm_bg_add(win);
+	evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_win_resize_object_add(win, bg);
+	evas_object_show(bg);
+
+	box = elm_box_add(win);
+	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	elm_win_resize_object_add(win, box);
+
+	list = elm_list_add(win);
+	elm_list_go(list);
+	elm_box_pack_end(box, list);
+
+	evas_object_show(box);
+	evas_object_show(win);
 }
 
 #endif
