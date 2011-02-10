@@ -10,6 +10,15 @@ static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event);
 static void show_tasklist(void);
 
+/* local types */
+
+typedef struct _swkey_Window
+{
+	Ecore_X_Window xwin;
+	char *name;
+	char *title;
+} SwKeyWindow;
+
 /* local variables */
 
 Eina_Bool visible=0;
@@ -201,9 +210,31 @@ _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event)
 	show_tasklist();
 }
 
+static void 
+on_win_select(void *data, Evas_Object *obj, void *event) 
+{
+	Evas_Object *win = elm_object_parent_widget_get(obj);
+	Ecore_X_Window_State tasklist = elm_win_xwindow_get(win);
+	SwKeyWindow *window = (SwKeyWindow*)data;
+
+	if(!window) return;
+
+	printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
+	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
+}
+
 static void show_tasklist(void)
 {
 	Evas_Object *win, *bg, *box, *list;
+	Ecore_X_Window_State *state=NULL;
+	Ecore_X_Window *windows = NULL;
+	int num, i, snum, j, include;
+	SwKeyWindow *window;
+	char *tmp=NULL;
+
+	num = ecore_x_window_prop_window_list_get(root, ECORE_X_ATOM_NET_CLIENT_LIST, &windows);
+
+	if( !(num && windows)) return;
 
 	win = elm_win_add(NULL, "Illume-Softkey-Tasklist", ELM_WIN_BASIC);
 	elm_win_title_set(win, "Running Tasks");
@@ -220,7 +251,34 @@ static void show_tasklist(void)
 	elm_win_resize_object_add(win, box);
 
 	list = elm_list_add(win);
+	evas_object_size_hint_weight_set(list, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	evas_object_size_hint_align_set(list, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+	for (i = 0; i < num; i++)
+	{
+		include = 1;
+
+		ecore_x_netwm_window_state_get(windows[i], &state, &snum);
+		for (j = 0; j < snum; j++, state++)
+			if ( (*state == ECORE_X_WINDOW_STATE_SKIP_TASKBAR) || (*state == ECORE_X_WINDOW_STATE_SKIP_PAGER) )
+				include = 0;
+		if(include)
+		{
+			window = calloc(1, sizeof(SwKeyWindow));
+			window->xwin = windows[i];
+			ecore_x_icccm_name_class_get(windows[i], &window->name, NULL);
+			window->title = ecore_x_icccm_title_get(windows[i]);
+			if(window->title)
+				elm_list_item_append(list, window->title, NULL, NULL, on_win_select, window);
+			else if(window->name)
+				elm_list_item_append(list, window->name, NULL, NULL, on_win_select, window);
+			else 
+				elm_list_item_append(list, "Untitled", NULL, NULL, on_win_select, window);
+		}
+	}
+
 	elm_list_go(list);
+	evas_object_show(list);
 	elm_box_pack_end(box, list);
 
 	evas_object_show(box);
