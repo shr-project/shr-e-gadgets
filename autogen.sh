@@ -1,4 +1,15 @@
 #! /bin/sh
+
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
+ORIGDIR=`pwd`
+cd $srcdir
+
 autoreconf -v --install || exit 1
-glib-gettextize --force --copy || exit 1
-./configure --enable-maintainer-mode "$@"
+#intltoolize -c --automake --force || exit 1
+cd $ORIGDIR || exit $?
+
+if [ -z "$NOCONFIGURE" ]; then
+	$srcdir/configure "$@"
+fi

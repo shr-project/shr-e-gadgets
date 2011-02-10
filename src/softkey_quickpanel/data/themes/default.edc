@@ -1,0 +1,114 @@
+images {
+	image: "back.png" COMP;
+	image: "forward.png" COMP;
+	image: "close.png" COMP;
+	image: "up.png" COMP;
+	image: "down.png" COMP;
+}
+
+collections {
+	group {
+		name: "back";
+		min: 32 32;
+		images.image: "back.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "back.png";
+				}
+			}
+		}
+	}
+
+	group {
+		name: "forward";
+		min: 32 32;
+		images.image: "forward.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "forward.png";
+				}
+			}
+		}
+	}
+
+	group {
+		name: "close";
+		min: 32 32;
+		images.image: "close.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "close.png";
+				}
+			}
+		}
+	}
+
+	group {
+		name: "up";
+		min: 32 32;
+		images.image: "up.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "up.png";
+				}
+			}
+		}
+	}
+
+	group {
+		name: "down";
+		min: 32 32;
+		images.image: "down.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "down.png";
+				}
+			}
+		}
+	}
+
+	group { name: "shr_elm_sk/layout/default";
+		parts {
+			part {  name: "bg";
+				type: RECT;
+				description {   state: "default" 0.0;
+						min: 40 40;
+				}
+			}
+			part {  name: "buttons";
+				type: SWALLOW;
+				clip_to: "bg";
+				description {   state: "default" 0.0;
+						align: 0.5 1.0;
+						fixed: 1 1;
+				}
+			}
+		}
+	}
+
+}

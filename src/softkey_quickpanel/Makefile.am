@@ -1,3 +1,5 @@
+SUBDIRS = data
+
 MAINTAINERCLEANFILES = Makefile.in
 
 bin_PROGRAMS = shr_elm_softkey
@@ -12,14 +14,3 @@ shr_elm_softkey_SOURCES = \
 
 shr_elm_softkey_LDFLAGS = -export-dynamic
 shr_elm_softkey_LDADD = @ELM_SOFTKEY_LIBS@
-
-filesdir = $(datadir)/shr_elm_softkey/images
-files_DATA = \
-	     data/close.png \
-	     data/back.png \
-	     data/forward.png
-
-EXTRA_DIST = $(files_DATA)
-
-desktopdir = $(datadir)/applications
-dist_desktop_DATA = data/shr_elm_softkey.desktop

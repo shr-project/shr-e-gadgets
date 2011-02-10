@@ -13,12 +13,14 @@ static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
 Eina_Bool visible=0;
 Ecore_X_Window root;
 
+#define THEME PACKAGE_DATA_DIR "/themes/default.edj"
+
 EAPI int 
 elm_main(int argc, char **argv) 
 {
 	Ecore_X_Window *zones = NULL, xwin;
 	Ecore_X_Window_State states[2];
-	Evas_Object *win, *bg, *table, *btn, *icon;
+	Evas_Object *win, *bg, *layout, *table, *btn, *icon;
 	char buff[PATH_MAX];
 	int zx, zy, zw, zh, finger = elm_finger_size_get();
 	int count = 0;
@@ -30,6 +32,8 @@ elm_main(int argc, char **argv)
 	count = ecore_x_window_prop_window_list_get(root, ECORE_X_ATOM_E_ILLUME_ZONE_LIST, &zones);
 
 	if (!zones) return EXIT_FAILURE;
+
+	elm_theme_extension_add(NULL, THEME);
 
 	zoneid = calloc(1, sizeof(unsigned int));
 	*zoneid = zones[0];
@@ -54,49 +58,51 @@ elm_main(int argc, char **argv)
 	elm_win_resize_object_add(win, bg);
 	evas_object_show(bg);
 
+	layout = elm_layout_add(win);
+	elm_layout_file_set(layout, THEME, "shr_elm_sk/layout");
+	evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_win_resize_object_add(win, layout);
+	evas_object_show(layout);
+
 	table = elm_table_add(win);
 	elm_table_homogenous_set(table, EINA_TRUE);
-	//elm_box_padding_set(box, finger/2, finger/4);
 	evas_object_size_hint_weight_set(table, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_win_resize_object_add(win, table);
 
 	icon = elm_icon_add(win);
-	snprintf(buff, sizeof(buff), "%s/images/back.png", PACKAGE_DATA_DIR);
-	elm_icon_file_set(icon, buff, NULL);
+	elm_icon_file_set(icon, THEME, "back");
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
 	elm_button_icon_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_back_clicked, win);
-	evas_object_size_hint_align_set(btn, 0.5, 0.5);
+	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_table_pack(table, btn, 0, 0, 1, 1);
 	evas_object_show(icon);
 	evas_object_show(btn);
 
 	icon = elm_icon_add(win);
-	snprintf(buff, sizeof(buff), "%s/images/close.png", PACKAGE_DATA_DIR);
-	elm_icon_file_set(icon, buff, NULL);
+	elm_icon_file_set(icon, THEME, "close");
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
 	elm_button_icon_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_close_clicked, win);
-	evas_object_size_hint_align_set(btn, 0.5, 0.5);
+	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_table_pack(table, btn, 1, 0, 1, 1);
 	evas_object_show(icon);
 	evas_object_show(btn);
 
 	icon = elm_icon_add(win);
-	snprintf(buff, sizeof(buff), "%s/images/forward.png", PACKAGE_DATA_DIR);
-	elm_icon_file_set(icon, buff, NULL);
+	elm_icon_file_set(icon, THEME, "forward");
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
 	elm_button_icon_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_forward_clicked, win);
-	evas_object_size_hint_align_set(btn, 0.5, 0.5);
+	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_table_pack(table, btn, 2, 0, 1, 1);
 	evas_object_show(icon);
@@ -109,6 +115,8 @@ elm_main(int argc, char **argv)
 
 	evas_object_move(win, zx, (zy + zh - finger));
 	evas_object_resize(win, zw, finger);
+
+	elm_layout_content_set(layout, "buttons", table);
 
 	evas_object_show(win);
 
