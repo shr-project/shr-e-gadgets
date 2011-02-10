@@ -9,6 +9,8 @@ static void _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event);
 static void _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event);
 static void show_tasklist(void);
+static void swkeywin_free(void *w);
+static void winlist_free_if_not_null();
 
 /* local types */
 
@@ -22,6 +24,7 @@ typedef struct _swkey_Window
 /* local variables */
 
 Eina_Bool visible=0;
+Eina_List *swkeywins=NULL;
 Ecore_X_Window root;
 
 #define THEME PACKAGE_DATA_DIR "/themes/default.edj"
@@ -214,13 +217,38 @@ static void
 on_win_select(void *data, Evas_Object *obj, void *event) 
 {
 	Evas_Object *win = elm_object_parent_widget_get(obj);
-	Ecore_X_Window_State tasklist = elm_win_xwindow_get(win);
+	Ecore_X_Window tasklist = elm_win_xwindow_get(win);
 	SwKeyWindow *window = (SwKeyWindow*)data;
 
 	if(!window) return;
 
 	printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
 	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
+	evas_object_del(win);
+
+	winlist_free_if_not_null();
+}
+
+static void swkeywin_free(void *w)
+{
+	SwKeyWindow *win = (SwKeyWindow*)w;
+
+	if (!win) return;
+
+	if (win->title) free(win->title);
+	if (win->name) free(win->name);
+	free(win);
+}
+
+static void winlist_free_if_not_null()
+{
+	void *w;
+
+	if(swkeywins)
+	{
+		EINA_LIST_FREE(swkeywins, w) swkeywin_free(w);
+		swkeywins = NULL;
+	}
 }
 
 static void show_tasklist(void)
@@ -231,14 +259,16 @@ static void show_tasklist(void)
 	int num, i, snum, j, include;
 	SwKeyWindow *window;
 	char *tmp=NULL;
+	void *w;
 
 	num = ecore_x_window_prop_window_list_get(root, ECORE_X_ATOM_NET_CLIENT_LIST, &windows);
 
 	if( !(num && windows)) return;
 
+	winlist_free_if_not_null();
+
 	win = elm_win_add(NULL, "Illume-Softkey-Tasklist", ELM_WIN_BASIC);
 	elm_win_title_set(win, "Running Tasks");
-	elm_win_autodel_set(win, EINA_TRUE);
 
 	bg = elm_bg_add(win);
 	evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -268,6 +298,8 @@ static void show_tasklist(void)
 			window->xwin = windows[i];
 			ecore_x_icccm_name_class_get(windows[i], &window->name, NULL);
 			window->title = ecore_x_icccm_title_get(windows[i]);
+			swkeywins = eina_list_append(swkeywins, window);
+
 			if(window->title)
 				elm_list_item_append(list, window->title, NULL, NULL, on_win_select, window);
 			else if(window->name)

@@ -1,4 +1,8 @@
 .deps
+.la
+.libs
+.lo
+.o
 Makefile
 Makefile.in
 aclocal.m4
