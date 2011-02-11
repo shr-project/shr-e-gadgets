@@ -11,6 +11,10 @@ static void _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event);
 static void show_tasklist(void);
 static void swkeywin_free(void *w);
 static void winlist_free_if_not_null();
+char *swkey_task_label_get(void *data, Evas_Object *obj, const char *part);
+Evas_Object *swkey_task_swallow_get(void *data, Evas_Object *obj, const char *part);
+Eina_Bool swkey_task_state_get(void *data, Evas_Object *obj, const char *part);
+void swkey_task_del_get(void *data, Evas_Object *obj);
 
 /* local types */
 
@@ -26,6 +30,7 @@ typedef struct _swkey_Window
 Eina_Bool visible=0;
 Eina_List *swkeywins=NULL;
 Ecore_X_Window root;
+static Elm_Genlist_Item_Class itc;
 
 #define THEME PACKAGE_DATA_DIR "/themes/default.edj"
 
@@ -51,6 +56,13 @@ elm_main(int argc, char **argv)
 
 	zoneid = calloc(1, sizeof(unsigned int));
 	*zoneid = zones[0];
+
+	//itc.item_style     = "swkey";
+	itc.item_style     = "default";
+	itc.func.label_get = swkey_task_label_get;
+	itc.func.icon_get  = swkey_task_swallow_get;
+	itc.func.state_get = swkey_task_state_get;
+	itc.func.del       = swkey_task_del_get;
 
 	/* create new window */
 	win = elm_win_add(NULL, "Illume-Softkey", ELM_WIN_BASIC);
@@ -216,13 +228,14 @@ _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event)
 static void 
 on_win_select(void *data, Evas_Object *obj, void *event) 
 {
-	Evas_Object *win = elm_object_parent_widget_get(obj);
+	Elm_Genlist_Item *gli = (Elm_Genlist_Item*)event;
+	SwKeyWindow *window = (SwKeyWindow*)elm_genlist_item_data_get(gli);
+	Evas_Object *win = elm_object_parent_widget_get(elm_object_parent_widget_get(obj));
 	Ecore_X_Window tasklist = elm_win_xwindow_get(win);
-	SwKeyWindow *window = (SwKeyWindow*)data;
 
 	if(!window) return;
 
-	printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
+	//printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
 	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
 	evas_object_del(win);
 
@@ -250,6 +263,46 @@ static void winlist_free_if_not_null()
 		swkeywins = NULL;
 	}
 }
+
+char *swkey_task_label_get(void *data, Evas_Object *obj, const char *part)
+{
+	SwKeyWindow *task = (SwKeyWindow*)data;
+	char buf[PATH_MAX];
+
+	if (!strcmp(part, "elm.text"))
+	{
+		if(task->title) snprintf(buf, PATH_MAX, "%s", task->title);
+		else if(task->name) snprintf(buf, PATH_MAX, "%s", task->name);
+		else snprintf(buf, PATH_MAX, "Unknown (%d)", task->xwin);
+		return(strdup(buf));
+	}
+
+	return(strdup(""));
+}
+
+Evas_Object *swkey_task_swallow_get(void *data, Evas_Object *obj, const char *part)
+{
+	SwKeyWindow *task = (SwKeyWindow*)data;
+	Evas_Object *icon = NULL;
+	//Ecore_X_Pixmap xwin_pmap = ecore_x_e_comp_pixmap_get(task->xwin);
+
+	
+// elm.swallow.icon
+// elm.swallow.end
+// elm.swallow.pad
+
+	return(icon);
+}
+
+Eina_Bool swkey_task_state_get(void *data, Evas_Object *obj, const char *part)
+{
+	return(EINA_FALSE);
+}
+
+void swkey_task_del_get(void *data, Evas_Object *obj)
+{
+}
+
 
 static void show_tasklist(void)
 {
@@ -280,9 +333,10 @@ static void show_tasklist(void)
 	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	elm_win_resize_object_add(win, box);
 
-	list = elm_list_add(win);
+	list = elm_genlist_add(win);
 	evas_object_size_hint_weight_set(list, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(list, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	evas_object_smart_callback_add(list, "selected", on_win_select, NULL);
 
 	for (i = 0; i < num; i++)
 	{
@@ -299,17 +353,10 @@ static void show_tasklist(void)
 			ecore_x_icccm_name_class_get(windows[i], &window->name, NULL);
 			window->title = ecore_x_icccm_title_get(windows[i]);
 			swkeywins = eina_list_append(swkeywins, window);
-
-			if(window->title)
-				elm_list_item_append(list, window->title, NULL, NULL, on_win_select, window);
-			else if(window->name)
-				elm_list_item_append(list, window->name, NULL, NULL, on_win_select, window);
-			else 
-				elm_list_item_append(list, "Untitled", NULL, NULL, on_win_select, window);
+			elm_genlist_item_append(list, &itc, window, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
 		}
 	}
 
-	elm_list_go(list);
 	evas_object_show(list);
 	elm_box_pack_end(box, list);
 
