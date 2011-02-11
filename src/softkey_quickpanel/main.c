@@ -31,6 +31,7 @@ Eina_Bool visible=0;
 Eina_List *swkeywins=NULL;
 Ecore_X_Window root;
 static Elm_Genlist_Item_Class itc;
+Evas_Object *tasklist_win=NULL;
 
 #define THEME PACKAGE_DATA_DIR "/themes/default.edj"
 
@@ -199,6 +200,9 @@ _cb_btn_back_clicked(void *data, Evas_Object *obj, void *event)
 	if (!(win = data)) return;
 	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_focus_back_send(*zone);
+
+	evas_object_del(tasklist_win);
+	winlist_free_if_not_null();
 }
 
 static void 
@@ -210,6 +214,9 @@ _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event)
 	if (!(win = data)) return;
 	zone = (Ecore_X_Window*)evas_object_data_get(win, "zone");
 	ecore_x_e_illume_focus_forward_send(*zone);
+
+	evas_object_del(tasklist_win);
+	winlist_free_if_not_null();
 }
 
 static void 
@@ -230,15 +237,14 @@ on_win_select(void *data, Evas_Object *obj, void *event)
 {
 	Elm_Genlist_Item *gli = (Elm_Genlist_Item*)event;
 	SwKeyWindow *window = (SwKeyWindow*)elm_genlist_item_data_get(gli);
-	Evas_Object *win = elm_object_parent_widget_get(elm_object_parent_widget_get(obj));
-	Ecore_X_Window tasklist = elm_win_xwindow_get(win);
+	Ecore_X_Window tasklist = elm_win_xwindow_get(tasklist_win);
 
 	if(!window) return;
 
 	//printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
 	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
-	evas_object_del(win);
 
+	evas_object_del(tasklist_win);
 	winlist_free_if_not_null();
 }
 
@@ -318,22 +324,23 @@ static void show_tasklist(void)
 
 	if( !(num && windows)) return;
 
+	if(tasklist_win) evas_object_del(tasklist_win);
 	winlist_free_if_not_null();
 
-	win = elm_win_add(NULL, "Illume-Softkey-Tasklist", ELM_WIN_BASIC);
-	elm_win_title_set(win, "Running Tasks");
+	tasklist_win = elm_win_add(NULL, "Illume-Softkey-Tasklist", ELM_WIN_BASIC);
+	elm_win_title_set(tasklist_win, "Running Tasks");
 
-	bg = elm_bg_add(win);
+	bg = elm_bg_add(tasklist_win);
 	evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_win_resize_object_add(win, bg);
+	elm_win_resize_object_add(tasklist_win, bg);
 	evas_object_show(bg);
 
-	box = elm_box_add(win);
+	box = elm_box_add(tasklist_win);
 	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
-	elm_win_resize_object_add(win, box);
+	elm_win_resize_object_add(tasklist_win, box);
 
-	list = elm_genlist_add(win);
+	list = elm_genlist_add(tasklist_win);
 	evas_object_size_hint_weight_set(list, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(list, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_smart_callback_add(list, "selected", on_win_select, NULL);
@@ -361,7 +368,7 @@ static void show_tasklist(void)
 	elm_box_pack_end(box, list);
 
 	evas_object_show(box);
-	evas_object_show(win);
+	evas_object_show(tasklist_win);
 }
 
 #endif
