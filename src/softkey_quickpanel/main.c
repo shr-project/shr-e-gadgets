@@ -320,6 +320,12 @@ Evas_Object *swkey_task_swallow_get(void *data, Evas_Object *obj, const char *pa
 		}
 #endif
 
+		if(!object)
+		{
+			object = elm_icon_add(obj);
+			elm_icon_file_set(object, THEME, "window");
+			evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+		}
 	}
 // elm.swallow.end
 // elm.swallow.pad

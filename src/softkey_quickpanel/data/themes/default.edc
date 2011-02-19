@@ -4,6 +4,7 @@ images {
 	image: "close.png" COMP;
 	image: "up.png" COMP;
 	image: "down.png" COMP;
+	image: "window.png" COMP;
 }
 
 collections {
@@ -87,6 +88,23 @@ collections {
 					aspect: 1.0 1.0;
 					aspect_preference: BOTH;
 					image.normal: "down.png";
+				}
+			}
+		}
+	}
+
+	group {
+		name: "window";
+		min: 32 32;
+		images.image: "window.png" COMP;
+		parts {
+			part {
+				name: "icon";
+				description {
+					state: "default" 0.0;
+					aspect: 1.0 1.0;
+					aspect_preference: BOTH;
+					image.normal: "window.png";
 				}
 			}
 		}

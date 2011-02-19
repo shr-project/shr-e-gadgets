@@ -14,7 +14,8 @@ EXTRA_DIST = \
 	close.png	\
 	down.png	\
 	forward.png	\
-	up.png
+	up.png		\
+	window.png
 
 default.edj: Makefile $(EXTRA_DIST)
 	$(EDJE_CC) $(EDJE_FLAGS) \
