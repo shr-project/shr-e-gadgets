@@ -17,6 +17,7 @@ PKG_CHECK_MODULES(ENLIGHTENMENT, enlightenment)
 EFL_WITH_BIN([edje], [edje-cc], [edje_cc])
 PKG_CHECK_MODULES(ELM_SOFTKEY, [
   ecore-x
+  efreet
   elementary
 ])
 

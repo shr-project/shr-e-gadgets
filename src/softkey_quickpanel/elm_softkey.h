@@ -6,6 +6,7 @@
 # endif
 
 # include <Ecore_X.h>
+# include <Efreet.h>
 # include <Elementary.h>
 
 # ifdef ELM_SOFTKEY_API

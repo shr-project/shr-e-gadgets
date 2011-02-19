@@ -22,7 +22,10 @@ typedef struct _swkey_Window
 {
 	Ecore_X_Window xwin;
 	char *name;
+	char *class;
 	char *title;
+	int argc;
+	char **argv;
 } SwKeyWindow;
 
 /* local variables */
@@ -162,6 +165,10 @@ elm_main(int argc, char **argv)
 
 	free(zones);
 
+#ifdef ELM_EFREET
+	elm_need_efreet();
+#endif
+
 	elm_run();
 
 	elm_shutdown();
@@ -241,7 +248,6 @@ on_win_select(void *data, Evas_Object *obj, void *event)
 
 	if(!window) return;
 
-	//printf("Selected window: %s / %s / %d\n", window->title, window->name, window->xwin);
 	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
 
 	evas_object_del(tasklist_win);
@@ -254,8 +260,10 @@ static void swkeywin_free(void *w)
 
 	if (!win) return;
 
-	if (win->title) free(win->title);
 	if (win->name) free(win->name);
+	if (win->class) free(win->class);
+	if (win->title) free(win->title);
+	if (win->argv) free(win->argv);
 	free(win);
 }
 
@@ -277,9 +285,10 @@ char *swkey_task_label_get(void *data, Evas_Object *obj, const char *part)
 
 	if (!strcmp(part, "elm.text"))
 	{
-		if(task->title) snprintf(buf, PATH_MAX, "%s", task->title);
-		else if(task->name) snprintf(buf, PATH_MAX, "%s", task->name);
-		else snprintf(buf, PATH_MAX, "Unknown (%d)", task->xwin);
+		if(task->name && task->title) snprintf(buf, PATH_MAX, " %s (%s)", task->title, task->name);
+		else if(task->title) snprintf(buf, PATH_MAX, " %s", task->title);
+		else if(task->name) snprintf(buf, PATH_MAX, " %s", task->name);
+		else snprintf(buf, PATH_MAX, " Unknown (%d)", task->xwin);
 		return(strdup(buf));
 	}
 
@@ -289,15 +298,33 @@ char *swkey_task_label_get(void *data, Evas_Object *obj, const char *part)
 Evas_Object *swkey_task_swallow_get(void *data, Evas_Object *obj, const char *part)
 {
 	SwKeyWindow *task = (SwKeyWindow*)data;
-	Evas_Object *icon = NULL;
-	//Ecore_X_Pixmap xwin_pmap = ecore_x_e_comp_pixmap_get(task->xwin);
+	Evas_Object *object = NULL;
 
-	
+#ifdef ELM_EFREET
+	Efreet_Desktop *desktop;
+#endif
+
 // elm.swallow.icon
+	if (!strcmp(part, "elm.swallow.icon"))
+	{
+
+#ifdef ELM_EFREET
+		desktop = efreet_util_desktop_exec_find(task->argv[0]);
+		if(!desktop) desktop = efreet_util_desktop_wm_class_find(task->name, task->class);
+		if(!desktop) desktop = efreet_util_desktop_name_find(task->name);
+		if(desktop) {
+			object = elm_icon_add(obj);
+			evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+			elm_icon_standard_set(object, desktop->icon);
+			efreet_desktop_free(desktop);
+		}
+#endif
+
+	}
 // elm.swallow.end
 // elm.swallow.pad
 
-	return(icon);
+	return(object);
 }
 
 Eina_Bool swkey_task_state_get(void *data, Evas_Object *obj, const char *part)
@@ -357,7 +384,8 @@ static void show_tasklist(void)
 		{
 			window = calloc(1, sizeof(SwKeyWindow));
 			window->xwin = windows[i];
-			ecore_x_icccm_name_class_get(windows[i], &window->name, NULL);
+			ecore_x_icccm_name_class_get(windows[i], &window->name, &window->class);
+			ecore_x_icccm_command_get(windows[i], &window->argc, &window->argv);
 			window->title = ecore_x_icccm_title_get(windows[i]);
 			swkeywins = eina_list_append(swkeywins, window);
 			elm_genlist_item_append(list, &itc, window, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
