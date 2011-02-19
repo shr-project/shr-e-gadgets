@@ -26,6 +26,9 @@ typedef struct _swkey_Window
 	char *title;
 	int argc;
 	char **argv;
+#ifdef ELM_EFREET
+	Efreet_Desktop *desktop;
+#endif
 } SwKeyWindow;
 
 /* local variables */
@@ -264,6 +267,9 @@ static void swkeywin_free(void *w)
 	if (win->class) free(win->class);
 	if (win->title) free(win->title);
 	if (win->argv) free(win->argv);
+#ifdef ELM_EFREET
+	if (win->desktop) efreet_desktop_free(win->desktop);
+#endif
 	free(win);
 }
 
@@ -307,24 +313,30 @@ Evas_Object *swkey_task_swallow_get(void *data, Evas_Object *obj, const char *pa
 // elm.swallow.icon
 	if (!strcmp(part, "elm.swallow.icon"))
 	{
-
 #ifdef ELM_EFREET
-		desktop = efreet_util_desktop_exec_find(task->argv[0]);
-		if(!desktop) desktop = efreet_util_desktop_wm_class_find(task->name, task->class);
-		if(!desktop) desktop = efreet_util_desktop_name_find(task->name);
-		if(desktop) {
-			object = elm_icon_add(obj);
-			evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
-			elm_icon_standard_set(object, desktop->icon);
-			efreet_desktop_free(desktop);
+		if(!task->desktop)
+		{
+			if(task->argv && task->argv[0]) task->desktop = efreet_util_desktop_exec_find(task->argv[0]);
+			if(!task->desktop && task->name && task->class) task->desktop = efreet_util_desktop_wm_class_find(task->name, task->class);
+			if(!task->desktop && task->name) task->desktop = efreet_util_desktop_name_find(task->name);
+		}
+
+		if(task->desktop)
+		{
+			if(task->desktop->icon)
+			{
+				object = elm_icon_add(obj);
+				evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+				elm_icon_standard_set(object, task->desktop->icon);
+			}
 		}
 #endif
 
 		if(!object)
 		{
 			object = elm_icon_add(obj);
-			elm_icon_file_set(object, THEME, "window");
 			evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+			elm_icon_file_set(object, THEME, "window");
 		}
 	}
 // elm.swallow.end
