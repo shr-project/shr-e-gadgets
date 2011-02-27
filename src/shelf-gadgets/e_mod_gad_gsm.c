@@ -801,7 +801,7 @@ static void fso_resource_changed(void* data, DBusMessage* msg)
        dbus_message_iter_next(&args);
        dbus_message_iter_get_basic(&args, &state);
        E_MOD_GAD_GSM_DEBUG_PRINTF("fso_resource_changed resource");
-        if (strcmp("GSM",resource) == 0)
+        if (resource && strcmp("GSM",resource) == 0)
         {
             if (state == FALSE)
             {
