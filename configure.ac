@@ -13,6 +13,8 @@ AC_PROG_LIBTOOL
 AC_ISC_POSIX
 AC_STDC_HEADERS
 
+AC_C___ATTRIBUTE__
+
 PKG_CHECK_MODULES(ENLIGHTENMENT, enlightenment)
 EFL_WITH_BIN([edje], [edje-cc], [edje_cc])
 PKG_CHECK_MODULES(ELM_SOFTKEY, [
@@ -35,5 +37,7 @@ src/shelf-gadgets/Makefile
 src/shelf-gadgets/module.desktop
 src/illume-rightclick-toggle/Makefile
 src/illume-rightclick-toggle/module.desktop
+src/battery-fso/Makefile
+src/battery-fso/module.desktop
 ])
 

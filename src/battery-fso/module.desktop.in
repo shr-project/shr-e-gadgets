@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Link
+Name=Battery-FSO
+Icon=e-module-battery-fso
+Comment=A gadget to visualize your battery status (Using FreeSmartphone.org).
+X-Enlightenment-ModuleType=system
