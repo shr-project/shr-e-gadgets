@@ -1,4 +1,4 @@
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = Makefile.in module.desktop
 MODULE = battery-fso
 #manual hack until I found out how to take e's release version
 release=@E_VERSION@

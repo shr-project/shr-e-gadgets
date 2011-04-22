@@ -30,6 +30,7 @@ extern Eina_List *device_batteries;
 extern double init_time;
 
 static E_DBus_Connection *conn = NULL;
+static Battery *battery = NULL;
 
 int
 _battery_fso_start(void)
@@ -48,10 +49,7 @@ _battery_fso_start(void)
         bat->udi = eina_stringshare_add(udi);
         device_batteries = eina_list_append(device_batteries, bat);
      }
-   bat->charging = FALSE;
-   bat->percent = 100;
-   bat->got_prop = 0;
-   _battery_device_update();
+   battery = bat;
 
    /* Get initial status */
    _battery_fso_get_capacity( bat );
@@ -259,6 +257,16 @@ _battery_fso_on_nameowner_change(void *data, DBusMessage *msg)
 
    if ((!strcmp(s1, "org.freesmartphone.odeviced")) && (conn))
      {
+     if(!strcmp(s3, "")) {
+        printf("\n\nERROR: No Name Owner!\nSetting Capacity to 0.\n\n\n");
+        if(battery) {
+        battery->charging = FALSE;
+        battery->percent = 0;
+        battery->got_prop = 1;
+        _battery_device_update();
+        }
+     }
+     else {
      if (capacity_handler)
        {
        e_dbus_signal_handler_del(conn, capacity_handler);
@@ -281,6 +289,7 @@ _battery_fso_on_nameowner_change(void *data, DBusMessage *msg)
                _battery_fso_on_powerstatus_change, data);
        _battery_fso_get_powerstatus( data );
        }
+      }
      }
    return;
 }
