@@ -107,7 +107,7 @@ elm_main(int argc, char **argv)
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
-	elm_button_icon_set(btn, icon);
+	elm_object_content_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_back_clicked, win);
 	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -120,7 +120,7 @@ elm_main(int argc, char **argv)
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
-	elm_button_icon_set(btn, icon);
+	elm_object_content_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_close_clicked, win);
 	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -133,7 +133,7 @@ elm_main(int argc, char **argv)
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
-	elm_button_icon_set(btn, icon);
+	elm_object_content_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_forward_clicked, win);
 	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -146,7 +146,7 @@ elm_main(int argc, char **argv)
 	evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
 	btn = elm_button_add(win);
-	elm_button_icon_set(btn, icon);
+	elm_object_content_set(btn, icon);
 	evas_object_smart_callback_add(btn, "clicked", _cb_btn_down_clicked, win);
 	evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
