@@ -226,7 +226,6 @@ _cb_btn_forward_clicked(void *data, Evas_Object *obj, void *event)
 	ecore_x_e_illume_focus_forward_send(*zone);
 
 	evas_object_del(tasklist_win);
-	tasklist_win = NULL;
 	winlist_free_if_not_null();
 }
 
@@ -256,7 +255,6 @@ on_win_select(void *data, Evas_Object *obj, void *event)
 
 	//commenting the next line fixes the SHR bug #1490
 	//evas_object_del(tasklist_win);
-	tasklist_win = NULL;
 	winlist_free_if_not_null();
 }
 
