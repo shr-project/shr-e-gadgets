@@ -98,7 +98,7 @@ elm_main(int argc, char **argv)
 	evas_object_show(layout);
 
 	table = elm_table_add(win);
-	elm_table_homogenous_set(table, EINA_TRUE);
+	elm_table_homogeneous_set(table, EINA_TRUE);
 	evas_object_size_hint_weight_set(table, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_win_resize_object_add(win, table);
 
