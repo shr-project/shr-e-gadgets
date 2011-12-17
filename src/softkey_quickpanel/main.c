@@ -77,7 +77,7 @@ elm_main(int argc, char **argv)
 	elm_win_quickpanel_set(win, 1);
 	elm_win_quickpanel_priority_major_set(win, 5);
 	elm_win_quickpanel_priority_minor_set(win, 5);
-	evas_object_smart_callback_add(win, "delete-request", _cb_win_del, NULL);
+	evas_object_smart_callback_add(win, "delete,request", _cb_win_del, NULL);
 	evas_object_data_set(win, "zone", (const void *)zoneid);
 
 	xwin = elm_win_xwindow_get(win);
