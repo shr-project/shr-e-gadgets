@@ -66,7 +66,7 @@ elm_main(int argc, char **argv)
 
 	//itc.item_style     = "swkey";
 	itc.item_style     = "default";
-	itc.func.label_get = swkey_task_label_get;
+	itc.func.text_get = swkey_task_label_get;
 	itc.func.content_get  = swkey_task_swallow_get;
 	itc.func.state_get = swkey_task_state_get;
 	itc.func.del       = swkey_task_del_get;
