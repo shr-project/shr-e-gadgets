@@ -10,13 +10,9 @@
 #define FALSE 0
 #define TRUE 1
 
-static E_DBus_Connection *conn = NULL;
 static E_DBus_Connection *conn_system = NULL;
-static E_DBus_Signal_Handler *changed_h = NULL;
 static E_DBus_Signal_Handler *changed_fso_h = NULL;
-static E_DBus_Signal_Handler *operatorch_h = NULL;
 static E_DBus_Signal_Handler *operatorch_fso_h = NULL;
-static E_DBus_Signal_Handler *namech_h = NULL;
 static E_DBus_Signal_Handler *namech_system_h = NULL;
 static E_DBus_Signal_Handler *device_status_changed_fso_h = NULL;
 
@@ -25,7 +21,6 @@ static Ecore_Timer *try_again_timer = NULL;
 typedef enum _Phone_Sys
 {
    PH_SYS_UNKNOWN,
-   PH_SYS_QTOPIA,
    PH_SYS_FSO
 } Phone_Sys;
 
@@ -162,34 +157,12 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    inst->strength = -1;
    inst->oper = NULL;
 
-   conn = e_dbus_bus_get(DBUS_BUS_SESSION);
    conn_system = e_dbus_bus_get(DBUS_BUS_SYSTEM);
 
    E_MOD_GAD_GSM_DEBUG_PRINTF("before updateState");
    updateStatus(inst);
    E_MOD_GAD_GSM_DEBUG_PRINTF("after updateState");
 
-   if (conn)
-     {
-	namech_h = e_dbus_signal_handler_add(conn,
-					     "org.freedesktop.DBus",
-					     "/org/freedesktop/DBus",
-					     "org.freedesktop.DBus",
-					     "NameOwnerChanged",
-					     name_changed, inst);
-	changed_h = e_dbus_signal_handler_add(conn,
-					      "org.openmoko.qtopia.Phonestatus",
-					      "/Status",
-					      "org.openmoko.qtopia.Phonestatus",
-					      "signalStrengthChanged",
-					      signal_changed, inst);
-	operatorch_h = e_dbus_signal_handler_add(conn,
-						 "org.openmoko.qtopia.Phonestatus",
-						 "/Status",
-						 "org.openmoko.qtopia.Phonestatus",
-						 "networkOperatorChanged",
-						 operator_changed, inst);
-     }
    if (conn_system)
      {
 	namech_system_h = e_dbus_signal_handler_add(conn_system,
@@ -229,7 +202,6 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 {
    Instance *inst;
 
-   if (conn) e_dbus_connection_close(conn);
    if (conn_system) e_dbus_connection_close(conn_system);
 
    inst = gcc->data;
@@ -434,37 +406,6 @@ fso_operator_unmarhsall(DBusMessage *msg, DBusError *err)
 }
 
 static void
-signal_callback_qtopia(void *data, void *ret, DBusError *err)
-{
-   E_MOD_GAD_GSM_DEBUG_PRINTF("Qtopia signal callback called");
-   if (ret)
-     {
-	int *val_ret;
-
-	if ((detected_system == PH_SYS_UNKNOWN) && (changed_h) && (conn))
-	  {
-	     e_dbus_signal_handler_del(conn, changed_h);
-	     changed_h = e_dbus_signal_handler_add(conn,
-						   "org.openmoko.qtopia.Phonestatus",
-						   "/Status",
-						   "org.openmoko.qtopia.Phonestatus",
-						   "signalStrengthChanged",
-						   signal_changed, data);
-	     detected_system = PH_SYS_QTOPIA;
-	  }
-	val_ret = ret;
-	update_signal(*val_ret, data);
-     }
-   else
-     {
-	E_MOD_GAD_GSM_DEBUG_PRINTF("Qtopia signal callback  else part called");
-	detected_system = PH_SYS_UNKNOWN;
-	if (try_again_timer) ecore_timer_del(try_again_timer);
-	try_again_timer = ecore_timer_add(5.0, try_again, data);
-     }
-}
-
-static void
 signal_callback_fso(void *data, void *ret, DBusError *err)
 {
    E_MOD_GAD_GSM_DEBUG_PRINTF("FSO signal callback called");
@@ -489,38 +430,6 @@ signal_callback_fso(void *data, void *ret, DBusError *err)
    else
      {
 	E_MOD_GAD_GSM_DEBUG_PRINTF("FSO signal callback else part called");
-	detected_system = PH_SYS_UNKNOWN;
-	if (try_again_timer) ecore_timer_del(try_again_timer);
-	try_again_timer = ecore_timer_add(5.0, try_again, data);
-     }
-}
-
-static void
-operator_callback_qtopia(void *data, void *ret, DBusError *err)
-{
-   E_MOD_GAD_GSM_DEBUG_PRINTF("Qtopia operator callback called");
-   if (ret)
-     {
-	if ((detected_system == PH_SYS_UNKNOWN) && (operatorch_h) && (conn))
-	  {
-	     e_dbus_signal_handler_del(conn, operatorch_h);
-	     operatorch_h = e_dbus_signal_handler_add(conn,
-						      "org.openmoko.qtopia.Phonestatus",
-						      "/Status",
-						      "org.openmoko.qtopia.Phonestatus",
-						      "networkOperatorChanged",
-						      operator_changed, data);
-	     detected_system = PH_SYS_QTOPIA;
-	  }
-	Instance* newData = E_NEW(Instance, 1);
-	newData->oper = ret;
-	newData->registered = TRUE;
-	update_operator(newData, data);
-	E_FREE(newData);
-     }
-   else
-     {
-	E_MOD_GAD_GSM_DEBUG_PRINTF("Qtopia operator callback else part called");
 	detected_system = PH_SYS_UNKNOWN;
 	if (try_again_timer) ecore_timer_del(try_again_timer);
 	try_again_timer = ecore_timer_add(5.0, try_again, data);
@@ -671,21 +580,6 @@ get_signal(void *data)
    DBusMessage *msg;
 
    E_MOD_GAD_GSM_DEBUG_PRINTF("Get signal called");
-   if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_QTOPIA)) && (conn))
-     {
-	msg = dbus_message_new_method_call("org.openmoko.qtopia.Phonestatus",
-					   "/Status",
-					   "org.openmoko.qtopia.Phonestatus",
-					   "signalStrength");
-	if (msg)
-	  {
-	     e_dbus_method_call_send(conn, msg,
-				     signal_unmarhsall,
-				     signal_callback_qtopia,
-				     signal_result_free, -1, data);
-	     dbus_message_unref(msg);
-	  }
-     }
    if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_FSO)) && (conn_system))
      {
 	msg = dbus_message_new_method_call("org.freesmartphone.ogsmd",
@@ -708,21 +602,6 @@ get_operator(void *data)
 {
    DBusMessage *msg;
    E_MOD_GAD_GSM_DEBUG_PRINTF("Get operator called");
-   if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_QTOPIA)) && (conn))
-     {
-	msg = dbus_message_new_method_call("org.openmoko.qtopia.Phonestatus",
-					   "/Status",
-					   "org.openmoko.qtopia.Phonestatus",
-					   "networkOperator");
-	if (msg)
-	  {
-	     e_dbus_method_call_send(conn, msg,
-				     operator_unmarhsall,
-				     operator_callback_qtopia,
-				     operator_result_free, -1, data);
-	     dbus_message_unref(msg);
-	  }
-     }
    if (((detected_system == PH_SYS_UNKNOWN) || (detected_system == PH_SYS_FSO)) && (conn_system))
      {
 	msg = dbus_message_new_method_call("org.freesmartphone.ogsmd",
@@ -836,33 +715,7 @@ name_changed(void *data, DBusMessage *msg)
 			      DBUS_TYPE_STRING, &s3,
 			      DBUS_TYPE_INVALID))
      return;
-   if ((!strcmp(s1, "org.openmoko.qtopia.Phonestatus")) && (conn))
-     {
-	E_MOD_GAD_GSM_DEBUG_PRINTF("Qtopia name owner changed");
-	if (changed_h)
-	  {
-	     e_dbus_signal_handler_del(conn, changed_h);
-	     changed_h = e_dbus_signal_handler_add(conn,
-						   "org.openmoko.qtopia.Phonestatus",
-						   "/Status",
-						   "org.openmoko.qtopia.Phonestatus",
-						   "signalStrengthChanged",
-						   signal_changed, data);
-	     get_signal(data);
-	  }
-	if (operatorch_h)
-	  {
-	     e_dbus_signal_handler_del(conn, operatorch_h);
-	     operatorch_h = e_dbus_signal_handler_add(conn,
-						      "org.openmoko.qtopia.Phonestatus",
-						      "/Status",
-						      "org.openmoko.qtopia.Phonestatus",
-						      "networkOperatorChanged",
-						      operator_changed, data);
-	     get_operator(data);
-	  }
-     }
-   else if ((!strcmp(s1, "org.freesmartphone.ogsmd")) && (conn_system))
+   if ((!strcmp(s1, "org.freesmartphone.ogsmd")) && (conn_system))
      {
 	E_MOD_GAD_GSM_DEBUG_PRINTF("FSO name owner changed");
       if (device_status_changed_fso_h)
