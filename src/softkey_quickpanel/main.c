@@ -162,7 +162,7 @@ elm_main(int argc, char **argv)
 	evas_object_move(win, zx, (zy + zh - finger));
 	evas_object_resize(win, zw, finger);
 
-	elm_layout_content_set(layout, "buttons", table);
+	elm_object_part_content_set(layout, "buttons", table);
 
 	evas_object_show(win);
 
@@ -245,8 +245,8 @@ _cb_btn_down_clicked(void *data, Evas_Object *obj, void *event)
 static void 
 on_win_select(void *data, Evas_Object *obj, void *event) 
 {
-	Elm_Genlist_Item *gli = (Elm_Genlist_Item*)event;
-	SwKeyWindow *window = (SwKeyWindow*)elm_genlist_item_data_get(gli);
+	Elm_Object_Item *gli = (Elm_Object_Item*)event;
+	SwKeyWindow *window = (SwKeyWindow*)elm_object_item_data_get(gli);
 	Ecore_X_Window tasklist = elm_win_xwindow_get(tasklist_win);
 
 	if(!window) return;
