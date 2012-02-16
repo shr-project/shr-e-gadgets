@@ -46,7 +46,7 @@ elm_main(int argc, char **argv)
 {
 	Ecore_X_Window *zones = NULL, xwin;
 	Ecore_X_Window_State states[2];
-	Evas_Object *win, *bg, *layout, *table, *btn, *icon;
+	Evas_Object *win, *bg, *table, *btn, *icon;
 	char buff[PATH_MAX];
 	int zx, zy, zw, zh, finger = elm_finger_size_get();
 	int count = 0;
@@ -90,12 +90,6 @@ elm_main(int argc, char **argv)
 	evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_win_resize_object_add(win, bg);
 	evas_object_show(bg);
-
-	layout = elm_layout_add(win);
-	elm_layout_file_set(layout, THEME, "shr_elm_sk/layout");
-	evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	elm_win_resize_object_add(win, layout);
-	evas_object_show(layout);
 
 	table = elm_table_add(win);
 	elm_table_homogeneous_set(table, EINA_TRUE);
@@ -161,8 +155,6 @@ elm_main(int argc, char **argv)
 
 	evas_object_move(win, zx, (zy + zh - finger));
 	evas_object_resize(win, zw, finger);
-
-	elm_object_part_content_set(layout, "buttons", table);
 
 	evas_object_show(win);
 

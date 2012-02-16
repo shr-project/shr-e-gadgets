@@ -109,24 +109,4 @@ collections {
 			}
 		}
 	}
-
-	group { name: "shr_elm_sk/layout/default";
-		parts {
-			part {  name: "bg";
-				type: RECT;
-				description {   state: "default" 0.0;
-						min: 40 40;
-				}
-			}
-			part {  name: "buttons";
-				type: SWALLOW;
-				clip_to: "bg";
-				description {   state: "default" 0.0;
-						align: 0.5 1.0;
-						fixed: 1 1;
-				}
-			}
-		}
-	}
-
 }
