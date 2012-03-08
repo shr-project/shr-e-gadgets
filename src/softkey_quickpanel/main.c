@@ -48,7 +48,7 @@ elm_main(int argc, char **argv)
 	Ecore_X_Window_State states[2];
 	Evas_Object *win, *bg, *table, *btn, *icon;
 	char buff[PATH_MAX];
-	int zx, zy, zw, zh, finger = elm_finger_size_get();
+	int zx, zy, zw, zh, finger = elm_config_finger_size_get();
 	int count = 0;
 	unsigned int *zoneid;
 
