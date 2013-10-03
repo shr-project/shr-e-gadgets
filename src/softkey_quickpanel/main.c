@@ -245,8 +245,8 @@ on_win_select(void *data, Evas_Object *obj, void *event)
 
 	ecore_x_netwm_client_active_request(root, window->xwin, 0, tasklist);
 
-	//commenting the next line fixes the SHR bug #1490
-	//evas_object_del(tasklist_win);
+	evas_object_del(tasklist_win);
+	tasklist_win = NULL;
 	winlist_free_if_not_null();
 }
 
